@@ -1,14 +1,24 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 interface IProps {
   modelValue?: boolean,
   width?: string
 }
 
-withDefaults(defineProps<IProps>(), {
+const props = withDefaults(defineProps<IProps>(), {
   modelValue: true,
   width: '180rem'
 })
+const emit = defineEmits(['update:modelValue'])
 
+const modalRef = ref();
+
+function onMaskClick(e: MouseEvent) {
+  // 只在点击遮罩时关闭，点击弹窗内容不关闭
+  if (e.target === e.currentTarget) {
+    emit('update:modelValue', false);
+  }
+}
 </script>
 
 <template>

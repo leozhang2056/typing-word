@@ -133,7 +133,15 @@ function next(isTyping: boolean = true) {
       stat.endDate = now
       stat.spend = now - stat.startDate
 
-      emitter.emit(EventKey.openStatModal, stat)
+      // 新增：章节结束事件
+      emitter.emit(EventKey.chapterFinished)
+      
+      // 检查是否有轮播监听器，如果有则不弹出统计弹窗
+      const chapterFinishedListeners = emitter.all.get(EventKey.chapterFinished)
+      if (!chapterFinishedListeners || chapterFinishedListeners.length === 0) {
+        // 没有轮播监听器，正常弹出统计弹窗
+        emitter.emit(EventKey.openStatModal, stat)
+      }
     }
   } else {
     data.index++
@@ -233,6 +241,10 @@ onUnmounted(() => {
   emitter.off(ShortcutKey.ToggleCollect, collect)
   emitter.off(ShortcutKey.ToggleSimple, toggleWordSimpleWrapper)
   emitter.off(ShortcutKey.PlayWordPronunciation, play)
+})
+
+defineExpose({
+  next: (isTyping: boolean = true) => next(isTyping)
 })
 
 </script>

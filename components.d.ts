@@ -14,6 +14,7 @@ declare module 'vue' {
     BaseButton: typeof import('./src/components/BaseButton.vue')['default']
     BaseIcon: typeof import('./src/components/BaseIcon.vue')['default']
     BaseList: typeof import('./src/components/list/BaseList.vue')['default']
+    CarouselSetting: typeof import('./src/components/toolbar/CarouselSetting.vue')['default']
     ChapterName: typeof import('./src/components/toolbar/ChapterName.vue')['default']
     Close: typeof import('./src/components/icon/Close.vue')['default']
     CollectNotice: typeof import('./src/components/CollectNotice.vue')['default']

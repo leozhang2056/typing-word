@@ -332,7 +332,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  emitter.off(EventKey.resetWord,)
+  emitter.off(EventKey.resetWord, () => {})
   emitter.off(EventKey.onTyping, onTyping)
 })
 

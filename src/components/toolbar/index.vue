@@ -19,6 +19,7 @@ import {DictType, ShortcutKey} from "@/types.ts";
 import ChapterName from "@/components/toolbar/ChapterName.vue";
 import {emitter, EventKey} from "@/utils/eventBus.ts";
 import BaseIcon from "@/components/BaseIcon.vue";
+import CarouselSetting from "@/components/toolbar/CarouselSetting.vue";
 
 const {toggleTheme} = useTheme()
 const store = useBaseStore()
@@ -115,6 +116,8 @@ watch(() => store.load, n => {
               @click="showFeedbackModal = true"
               title="反馈"
               icon="ph:bug-beetle"/>
+
+          <CarouselSetting/>
         </div>
 
         <div class="with-bg anim">

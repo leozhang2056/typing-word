@@ -19,4 +19,5 @@ export const EventKey = {
   editDict: 'editDict',
   openMyDictDialog: 'openMyDictDialog',
   jumpSpecifiedChapter: 'jumpSpecifiedChapter',
+  chapterFinished: 'chapterFinished',
 }

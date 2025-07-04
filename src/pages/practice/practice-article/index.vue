@@ -199,93 +199,22 @@ function wrong(word: Word) {
   }
 }
 
-function over() {
-  if (practiceStore.wrongWordNumber === 0) {
-    // if (false) {
-    console.log('这章节完了')
-    let now = Date.now()
-    let stat: DisplayStatistics = {
-      startDate: practiceStore.startDate,
-      endDate: now,
-      spend: now - practiceStore.startDate,
-      total: practiceStore.total,
-      correctRate: -1,
-      wrongWordNumber: practiceStore.wrongWordNumber,
-      wrongWords: practiceStore.wrongWords,
-    }
-    stat.correctRate = 100 - Math.trunc(((stat.wrongWordNumber) / (stat.total)) * 100)
-    emitter.emit(EventKey.openStatModal, stat)
-  } else {
-    tabIndex = 1
-    wordData.words = practiceStore.wrongWords
-    wordData.index = 0
+function collect(word: Word) {
+  let lowerName = word.name.toLowerCase();
+  if (!store.collect.originWords.find((v: Word) => v.name.toLowerCase() === lowerName)) {
+    store.collect.originWords.push(word)
   }
 }
 
-function nextWord(word: ArticleWord) {
-  if (!store.skipWordNamesWithSimpleWords.includes(word.name.toLowerCase()) && !word.isSymbol) {
-    practiceStore.inputWordNumber++
+function simple(word: Word) {
+  let lowerName = word.name.toLowerCase();
+  if (!store.simple.originWords.find((v: Word) => v.name.toLowerCase() === lowerName)) {
+    store.simple.originWords.push(word)
   }
 }
 
-function handleChangeChapterIndex(val: ArticleItem) {
-  let rIndex = articleData.articles.findIndex(v => v.id === val.item.id)
-  if (rIndex > -1) {
-    store.currentDict.chapterIndex = rIndex
-    getCurrentPractice()
-  }
-}
-
-const settingStore = useSettingStore()
-
-const {
-  isArticleCollect,
-  toggleArticleCollect
-} = useArticleOptions()
-
-function sort(list: Word[]) {
-  wordData.words = list
-  wordData.index = 0
-}
-
-function play() {
-  if (!articleIsActive) return
-  typingArticleRef?.play()
-}
-
-function show() {
-  if (!articleIsActive) return
-  typingArticleRef?.showSentence()
-}
-
-
-function onKeyUp(e: KeyboardEvent) {
-  typingArticleRef.hideSentence()
-}
-
-async function onKeyDown(e: KeyboardEvent) {
-  // console.log('e', e)
-  switch (e.key) {
-    case 'Backspace':
-      typingArticleRef.del()
-      break
-  }
-}
-
-useOnKeyboardEventListener(onKeyDown, onKeyUp)
-
-function skip() {
-  if (!articleIsActive) return
-  typingArticleRef?.nextSentence()
-}
-
-function collect(e: KeyboardEvent) {
-  if (!articleIsActive) return
-  toggleArticleCollect(articleData.article)
-}
-
-//包装一遍，因为快捷建的默认参数是Event
 function shortcutKeyEdit() {
+  if (!articleIsActive) return
   edit()
 }
 
@@ -293,11 +222,7 @@ onMounted(() => {
   init()
   emitter.on(EventKey.changeDict, init)
   emitter.on(EventKey.next, next)
-
   emitter.on(ShortcutKey.NextChapter, next)
-  emitter.on(ShortcutKey.PlayWordPronunciation, play)
-  emitter.on(ShortcutKey.ShowWord, show)
-  emitter.on(ShortcutKey.Next, skip)
   emitter.on(ShortcutKey.ToggleCollect, collect)
   emitter.on(ShortcutKey.EditArticle, shortcutKeyEdit)
 })
@@ -306,148 +231,110 @@ onUnmounted(() => {
   emitter.off(EventKey.changeDict, init)
   emitter.off(EventKey.next, next)
   emitter.off(ShortcutKey.NextChapter, next)
-  emitter.off(ShortcutKey.PlayWordPronunciation, play)
-  emitter.off(ShortcutKey.ShowWord, show)
-  emitter.off(ShortcutKey.Next, skip)
   emitter.off(ShortcutKey.ToggleCollect, collect)
   emitter.off(ShortcutKey.EditArticle, shortcutKeyEdit)
 })
-
-defineExpose({getCurrentPractice})
 
 </script>
 
 <template>
   <div class="practice-article">
-    <div class="swiper-wrapper">
-      <div class="swiper-list" :class="`step${tabIndex}`">
-        <div class="swiper-item">
-          <TypingArticle
-              ref="typingArticleRef"
-              :active="tabIndex === 0"
-              @edit="edit"
-              @wrong="wrong"
-              @over="skip"
-              @nextWord="nextWord"
-              :article="articleData.article"
-          />
-        </div>
-        <div class="swiper-item">
-          <div class="typing-word-wrapper">
-            <TypingWord
-                @sort="sort"
-                :words="wordData.words"
-                :index="wordData.index"
-                v-if="tabIndex === 1"
-            />
-          </div>
-        </div>
+    <div class="content">
+      <div class="article-wrapper" v-if="articleIsActive">
+        <TypingArticle
+            ref="typingArticleRef"
+            :article="articleData.article"
+            :section-index="articleData.sectionIndex"
+            :sentence-index="articleData.sentenceIndex"
+            :word-index="articleData.wordIndex"
+            :string-index="articleData.stringIndex"
+            :active="articleIsActive"
+            @wrong="wrong"
+            @next-word="(val) => { }"
+            @over="next"
+            @edit="edit"
+        />
+      </div>
+      <div class="word-wrapper" v-else>
+        <TypingWord
+            v-model:words="wordData.words"
+            :index="wordData.index"
+            @wrong="wrong"
+            @collect="collect"
+            @simple="simple"
+        />
       </div>
     </div>
-
-    <Teleport to="body">
-      <div class="panel-wrapper">
-        <Panel v-if="tabIndex === 0">
-          <template v-slot="{active}">
-            <div class="panel-page-item">
-              <div class="list-header">
-                <div class="left">
-                  <BaseIcon title="切换词典"
-                            @click="emitter.emit(EventKey.openDictModal,'list')"
-                            icon="carbon:change-catalog"/>
-                  <div class="title">
-                    {{ store.currentDict.name }}
-                  </div>
-                  <Tooltip
-                      :title="`下一章(快捷键：${settingStore.shortcutKeyMap[ShortcutKey.NextChapter]})`"
-                      v-if="store.currentDict.chapterIndex < articleData.articles .length - 1">
-                    <IconWrapper>
-                      <Icon @click="emitter.emit(EventKey.next)" icon="octicon:arrow-right-24"/>
-                    </IconWrapper>
-                  </Tooltip>
+    <div class="panel-wrapper">
+      <Panel>
+        <template v-slot="{active}">
+          <div class="panel-page-item">
+            <div class="list-header">
+              <div class="left">
+                <div class="title">
+                  {{ store.chapterName }}
                 </div>
-                <div class="right">
-                  {{ articleData.articles.length }}篇文章
-                </div>
+                <BaseIcon title="切换词典"
+                          @click="emitter.emit(EventKey.openDictModal,'list')"
+                          icon="carbon:change-catalog"/>
+                <BaseIcon icon="bi:arrow-right"
+                          @click="emitter.emit(EventKey.next)"
+                          :title="`下一章(快捷键：${settingStore.shortcutKeyMap[ShortcutKey.NextChapter]})`"
+                          v-if="store.currentDict.chapterIndex < store.currentDict.articles.length - 1"/>
               </div>
-
-              <ArticleList
-                  :isActive="active"
-                  :static="false"
-                  :show-border="true"
-                  :show-translate="settingStore.translate"
-                  @title="e => emitter.emit(EventKey.openArticleContentModal,e.item)"
-                  @click="handleChangeChapterIndex"
-                  :active-id="articleData.article.id"
-                  :list="articleData.articles ">
-                <template v-slot:suffix="{item,index}">
-                  <BaseIcon
-                      v-if="!isArticleCollect(item)"
-                      class="collect"
-                      @click="toggleArticleCollect(item)"
-                      title="收藏" icon="ph:star"/>
-                  <BaseIcon
-                      v-else
-                      class="fill"
-                      @click="toggleArticleCollect(item)"
-                      title="取消收藏" icon="ph:star-fill"/>
-                </template>
-              </ArticleList>
+              <div class="right">
+                {{ articleData.articles.length }}篇文章
+              </div>
             </div>
-          </template>
-        </Panel>
-      </div>
-    </Teleport>
-
-    <EditSingleArticleModal
-        v-model="showEditArticle"
-        :article="editArticle"
-        @save="saveArticle"
-    />
+            <ArticleList
+                v-if="articleData.articles.length"
+                :is-active="active"
+                :static="false"
+                :list="articleData.articles"
+                :activeIndex="store.currentDict.chapterIndex"
+                @click="(val:any) => { store.currentDict.chapterIndex = val.index; getCurrentPractice() }"
+            >
+              <template v-slot:suffix="{item,index}">
+                <BaseIcon
+                    v-if="!isArticleCollect(item)"
+                    class="collect"
+                    @click="toggleArticleCollect(item)"
+                    title="收藏" icon="ph:star"/>
+                <BaseIcon
+                    v-else
+                    class="fill"
+                    @click="toggleArticleCollect(item)"
+                    title="取消收藏" icon="ph:star-fill"/>
+                <BaseIcon
+                    :title="`编辑(快捷键：${settingStore.shortcutKeyMap[ShortcutKey.EditArticle]})`"
+                    icon="tabler:edit"
+                    @click="edit(item)"/>
+              </template>
+            </ArticleList>
+          </div>
+        </template>
+      </Panel>
+    </div>
   </div>
+  <EditSingleArticleModal v-if="showEditArticle" @close="showEditArticle = false" @save="saveArticle" :article="editArticle"/>
 </template>
 
 <style scoped lang="scss">
 @import "@/assets/css/style";
 
-.swiper-wrapper {
-  height: 100%;
-  overflow: hidden;
-
-  .swiper-list {
-    transition: transform .3s;
-    height: 200%;
-
-    .swiper-item {
-      height: 50%;
-      overflow: auto;
-      display: flex;
-      justify-content: center;
-    }
-  }
-
-  .step1 {
-    transform: translate3d(0, -50%, 0);
-  }
-}
-
 .practice-article {
-  flex: 1;
-  overflow: hidden;
-  width: var(--article-width);
-}
+  height: 100%;
+  display: flex;
+  gap: var(--space);
 
-.typing-word-wrapper {
-  width: var(--toolbar-width);
-}
+  .content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
 
-.panel-wrapper {
-  position: fixed;
-  left: 0;
-  top: 10rem;
-  z-index: 1;
-  margin-left: var(--article-panel-margin-left);
-  height: calc(100% - 20rem);
+  .panel-wrapper {
+    width: var(--panel-width);
+  }
 }
-
 </style>
